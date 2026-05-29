@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Local env
+.env
+.env.local
+
+# Development artifacts
+ai-instructions
+.playwright-mcp/
+
+# Screenshots not used by app
+filecrypt-ui-check.png
+filecrypt-ui-fixed.png
+
+# Vitest / Playwright
+test-results/
+
+# Test artifacts
+test/
+testfile.txt

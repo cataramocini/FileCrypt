@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 4px;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass {
+  background: rgba(17, 24, 39, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.transition-width {
+  transition: width 0.3s ease;
+}
+
+.drag-active {
+  border-color: #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.08) !important;
+}
+
+.dark .drag-active {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
