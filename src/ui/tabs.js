@@ -1,7 +1,7 @@
 import { els, formatBytes } from '../utils/dom.js';
 import { state } from '../state.js';
 import { canStream } from '../utils/files.js';
-import { ICON_ENCRYPT, ICON_DECRYPT, MAX_TOTAL_SIZE, STREAM_THRESHOLD } from '../config.js';
+import { ICON_ENCRYPT, ICON_DECRYPT, ICON_LOCK_CLOSED, ICON_LOCK_OPEN, MAX_TOTAL_SIZE, STREAM_THRESHOLD } from '../config.js';
 import { resetUI } from './progress.js';
 
 export function setMode(newMode) {
@@ -13,6 +13,7 @@ export function setMode(newMode) {
         els.tabDecrypt.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
         els.confirmPasswordWrapper.classList.remove('hidden');
         els.processBtnText.textContent = 'Encrypt Files';
+        els.processBtnIcon.querySelector('path').setAttribute('d', ICON_LOCK_CLOSED);
         els.dropZoneIcon.querySelector('path').setAttribute('d', ICON_ENCRYPT);
         els.dropZoneSubtext.textContent = `Any file types up to ${formatBytes(MAX_TOTAL_SIZE)}`;
         els.dropZoneHelper.textContent = 'Files larger than 256 MB are not supported on non-Chromium browsers.';
@@ -28,6 +29,7 @@ export function setMode(newMode) {
         els.tabEncrypt.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
         els.confirmPasswordWrapper.classList.add('hidden');
         els.processBtnText.textContent = 'Decrypt File';
+        els.processBtnIcon.querySelector('path').setAttribute('d', ICON_LOCK_OPEN);
         els.dropZoneIcon.querySelector('path').setAttribute('d', ICON_DECRYPT);
         els.dropZoneSubtext.textContent = 'Select your .enc file';
         els.dropZoneHelper.textContent = 'Files larger than 256 MB are not supported on non-Chromium browsers.';

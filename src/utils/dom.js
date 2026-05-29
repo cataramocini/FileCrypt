@@ -35,6 +35,7 @@ export const els = {
     progressText: document.getElementById('progressText'),
     progressLabel: document.getElementById('progressLabel'),
     processBtn: document.getElementById('processBtn'),
+    processBtnIcon: document.getElementById('processBtnIcon'),
     processBtnText: document.getElementById('processBtnText'),
     downloadContainer: document.getElementById('downloadContainer'),
     downloadLink: document.getElementById('downloadLink'),
