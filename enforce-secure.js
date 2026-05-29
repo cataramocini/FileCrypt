@@ -3,9 +3,9 @@
     const isSecure = location.protocol === 'https:' || isLocalhost;
     if (!isSecure) {
         document.body.innerHTML = `
-            <div style="max-width:600px;margin:100px auto;padding:40px;font-family:sans-serif;text-align:center;">
-                <h1 style="color:#dc2626;">🔒 Secure Connection Required</h1>
-                <p>FileCrypt must be served over HTTPS or localhost to protect your files and passwords.</p>
+            <div class="max-w-xl mx-auto mt-24 p-10 text-center">
+                <h1 class="text-red-600 text-2xl font-bold mb-4">🔒 Secure Connection Required</h1>
+                <p class="mb-2">FileCrypt must be served over HTTPS or localhost to protect your files and passwords.</p>
                 <p>Please access this application via a secure connection.</p>
             </div>
         `;

@@ -248,6 +248,7 @@ async function encryptFile(fileData, password, filename, mimeType) {
         const cipherChunk = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, cryptoKey, chunk);
         out.set(new Uint8Array(cipherChunk), off);
         off += cipherChunk.byteLength;
+        zeroBuffer(iv);
 
         if (i % 5 === 0 || i === numChunks - 1) {
             self.postMessage({type: 'progress', percent: Math.round(((i + 1) / numChunks) * 100)});
@@ -353,8 +354,11 @@ async function decryptFile(fileData, password) {
             const ptChunk = await crypto.subtle.decrypt({name: 'AES-GCM', iv}, cryptoKey, cipherChunk);
             out.set(new Uint8Array(ptChunk), outOff);
             outOff += ptChunk.byteLength;
+            zeroBuffer(new Uint8Array(ptChunk));
         } catch (e) {
             throw new Error('Incorrect password or corrupted file data.');
+        } finally {
+            zeroBuffer(iv);
         }
 
         if (i % 5 === 0 || i === numChunks - 1) {
