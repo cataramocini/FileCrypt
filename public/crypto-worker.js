@@ -418,6 +418,7 @@ async function encryptChunkSession(chunkData, chunkIndex) {
 
     const cipherChunk = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, session.cryptoKey, chunk);
     zeroBuffer(chunk);
+    zeroBuffer(iv);
 
     return cipherChunk;
 }
@@ -524,6 +525,9 @@ async function decryptChunkSession(chunkData, chunkIndex) {
         return ptChunk;
     } catch (e) {
         throw new Error('Incorrect password or corrupted file data.');
+    } finally {
+        zeroBuffer(iv);
+        zeroBuffer(data);
     }
 }
 

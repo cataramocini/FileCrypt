@@ -37,15 +37,17 @@ export async function streamEncrypt(file, passwordBytes) {
             const end = Math.min(start + chunkSize, file.size);
             const chunkData = await readFileChunk(file, start, end);
 
-            const chunkResult = await workerCall({
+            let chunkResult = await workerCall({
                 action: 'encryptChunk',
                 chunkIndex: i,
                 data: chunkData
             }, [chunkData]);
 
-            const outU8 = new Uint8Array(chunkResult.data);
+            let outU8 = new Uint8Array(chunkResult.data);
             await writable.write(outU8);
             zeroBuffer(outU8);
+            outU8 = null;
+            chunkResult = null;
 
             const percent = Math.round(((i + 1) / numChunks) * 100);
             if (percent !== lastPercent) {
@@ -53,6 +55,9 @@ export async function streamEncrypt(file, passwordBytes) {
                 lastPercent = percent;
             }
         }
+
+        updateProgress(100, 'Finalizing and securing file...');
+        await new Promise(resolve => setTimeout(resolve, 0));
 
         await workerCall({ action: 'resetSession' });
         await writable.close();
@@ -106,15 +111,17 @@ export async function streamDecrypt(file, passwordBytes) {
             const chunkData = await readFileChunk(file, fileOffset, fileOffset + cipherLen);
             fileOffset += cipherLen;
 
-            const chunkResult = await workerCall({
+            let chunkResult = await workerCall({
                 action: 'decryptChunk',
                 chunkIndex: i,
                 data: chunkData
             }, [chunkData]);
 
-            const ptU8 = new Uint8Array(chunkResult.data);
+            let ptU8 = new Uint8Array(chunkResult.data);
             await writable.write(ptU8);
             zeroBuffer(ptU8);
+            ptU8 = null;
+            chunkResult = null;
 
             const percent = Math.round(((i + 1) / numChunks) * 100);
             if (percent !== lastPercent) {
@@ -122,6 +129,9 @@ export async function streamDecrypt(file, passwordBytes) {
                 lastPercent = percent;
             }
         }
+
+        updateProgress(100, 'Finalizing and securing file...');
+        await new Promise(resolve => setTimeout(resolve, 0));
 
         await workerCall({ action: 'resetSession' });
         await writable.close();
