@@ -2,7 +2,7 @@ import { readFileChunk } from '../utils/files.js';
 import { workerCall } from './workerBridge.js';
 import { state } from '../state.js';
 import { zeroBuffer, sanitizeFilename } from '../utils/security.js';
-import { updateProgress, finishStreaming, failProcessing } from '../ui/progress.js';
+import { updateProgress, finishStreaming, failProcessing, setFinalizingAnimation } from '../ui/progress.js';
 import { clearFiles } from '../ui/fileManager.js';
 import { showToast } from '../ui/toast.js';
 
@@ -57,6 +57,7 @@ export async function streamEncrypt(file, passwordBytes) {
         }
 
         updateProgress(100, 'Finalizing and securing file...');
+        setFinalizingAnimation(true);
         await new Promise(resolve => setTimeout(resolve, 0));
 
         await workerCall({ action: 'resetSession' });
@@ -131,6 +132,7 @@ export async function streamDecrypt(file, passwordBytes) {
         }
 
         updateProgress(100, 'Finalizing and securing file...');
+        setFinalizingAnimation(true);
         await new Promise(resolve => setTimeout(resolve, 0));
 
         await workerCall({ action: 'resetSession' });

@@ -19,7 +19,18 @@ export function updateProgress(percent, label) {
     els.progressLabel.textContent = label || (state.mode === 'encrypt' ? 'Encrypting...' : 'Decrypting...');
 }
 
+export function setFinalizingAnimation(active) {
+    if (active) {
+        els.progressBar.classList.add('animate-pulse');
+        els.progressLabel.classList.add('animate-pulse');
+    } else {
+        els.progressBar.classList.remove('animate-pulse');
+        els.progressLabel.classList.remove('animate-pulse');
+    }
+}
+
 export function finishProcessing(buffer, filename, mimeType) {
+    setFinalizingAnimation(false);
     state.isProcessing = false;
     updateProcessButton();
     els.processBtnText.textContent = state.mode === 'encrypt' ? 'Encrypt Files' : 'Decrypt File';
@@ -70,6 +81,7 @@ export function finishProcessing(buffer, filename, mimeType) {
 }
 
 export function failProcessing(message) {
+    setFinalizingAnimation(false);
     state.isProcessing = false;
     updateProcessButton();
     els.processBtnText.textContent = state.mode === 'encrypt' ? 'Encrypt Files' : 'Decrypt File';
@@ -81,6 +93,7 @@ export function failProcessing(message) {
 }
 
 export function finishStreaming(filename) {
+    setFinalizingAnimation(false);
     state.isProcessing = false;
     updateProcessButton();
     els.processBtnText.textContent = state.mode === 'encrypt' ? 'Encrypt Files' : 'Decrypt File';
