@@ -6,11 +6,121 @@ import { clearFiles } from './fileManager.js';
 import { updateProcessButton } from './processButton.js';
 import { updateStrength } from './strengthMeter.js';
 
+// ── Module-level timer references for the download lifecycle ──
+let countdownInterval = null;
+let expirationTimeout = null;
+let postClickTimeout = null;
+let activeClickHandler = null;
+
+function clearDownloadTimers() {
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    if (expirationTimeout) {
+        clearTimeout(expirationTimeout);
+        expirationTimeout = null;
+    }
+    if (postClickTimeout) {
+        clearTimeout(postClickTimeout);
+        postClickTimeout = null;
+    }
+}
+
+function removeActiveClickHandler() {
+    if (activeClickHandler) {
+        els.downloadLink.removeEventListener('click', activeClickHandler);
+        activeClickHandler = null;
+    }
+}
+
+function resetDownloadButtonStyles() {
+    els.downloadLink.style.backgroundColor = '';
+    els.downloadLink.style.cursor = '';
+    els.downloadLink.style.pointerEvents = '';
+    els.downloadLink.removeAttribute('data-disabled');
+    els.downloadLink.disabled = false;
+    els.downloadLink.href = '#';
+    els.downloadLinkText.textContent = 'Download';
+    els.downloadLink.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+}
+
 export function revokeActiveObjectUrl() {
     if (state.activeObjectUrl) {
         URL.revokeObjectURL(state.activeObjectUrl);
         state.activeObjectUrl = null;
     }
+    clearDownloadTimers();
+    removeActiveClickHandler();
+    resetDownloadButtonStyles();
+}
+
+function setDownloadExpiredState() {
+    if (state.activeObjectUrl) {
+        URL.revokeObjectURL(state.activeObjectUrl);
+        state.activeObjectUrl = null;
+    }
+
+    removeActiveClickHandler();
+
+    els.downloadLink.removeAttribute('href');
+    els.downloadLink.setAttribute('data-disabled', 'true');
+    els.downloadLink.disabled = true;
+    els.downloadLink.style.backgroundColor = '#2d3748';
+    els.downloadLink.style.cursor = 'not-allowed';
+    els.downloadLink.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+    els.downloadLinkText.textContent = 'Download link expired';
+
+    els.downloadWarning.textContent = 'This link has expired for your security. Please re-encrypt the file.';
+    els.downloadWarning.classList.remove('text-amber-600', 'dark:text-amber-400');
+    els.downloadWarning.classList.add('text-red-600', 'dark:text-red-400');
+}
+
+function setDownloadCleanedState() {
+    if (state.activeObjectUrl) {
+        URL.revokeObjectURL(state.activeObjectUrl);
+        state.activeObjectUrl = null;
+    }
+
+    removeActiveClickHandler();
+
+    els.downloadLink.removeAttribute('href');
+    els.downloadLink.setAttribute('data-disabled', 'true');
+    els.downloadLink.disabled = true;
+    els.downloadLink.style.backgroundColor = '#2d3748';
+    els.downloadLink.style.cursor = 'not-allowed';
+    els.downloadLink.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+    els.downloadLinkText.textContent = 'Downloaded & Cleaned from memory';
+}
+
+function startDownloadCountdown() {
+    let secondsLeft = 30;
+
+    // Reset warning styling to amber in case it was previously red
+    els.downloadWarning.classList.remove('text-red-600', 'dark:text-red-400');
+    els.downloadWarning.classList.add('text-amber-600', 'dark:text-amber-400');
+
+    const updateWarningText = () => {
+        els.downloadWarning.textContent =
+            `This secure download link expires in ${secondsLeft} second${secondsLeft !== 1 ? 's' : ''}.`;
+    };
+
+    updateWarningText();
+
+    countdownInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft > 0) {
+            updateWarningText();
+        } else {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+    }, 1000);
+
+    expirationTimeout = setTimeout(() => {
+        clearDownloadTimers();
+        setDownloadExpiredState();
+    }, 30000);
 }
 
 export function updateProgress(percent, label) {
@@ -38,18 +148,21 @@ export function finishProcessing(buffer, filename, mimeType) {
     secureClearPasswordInputs();
     updateStrength();
 
-    const blob = new Blob([buffer], {type: mimeType || 'application/octet-stream'});
+    const blob = new Blob([buffer], { type: mimeType || 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
+
+    // Clean up any previous download state before assigning the new one
     revokeActiveObjectUrl();
     state.activeObjectUrl = url;
 
     let safeFilename = sanitizeFilename(filename, state.mode === 'encrypt' ? 'encrypted.enc' : 'decrypted');
-    // Ensure .enc extension is preserved for encrypted files after sanitization/truncation
     if (state.mode === 'encrypt' && !safeFilename.endsWith('.enc')) {
         safeFilename = safeFilename.slice(0, 196) + '.enc';
     }
+
     els.downloadLink.href = url;
     els.downloadLink.download = safeFilename;
+    resetDownloadButtonStyles();
 
     const lastDot = safeFilename.lastIndexOf('.');
     let baseName = safeFilename;
@@ -64,25 +177,20 @@ export function finishProcessing(buffer, filename, mimeType) {
     els.downloadContainer.classList.remove('hidden');
     els.downloadWarning.classList.remove('hidden');
 
-    // Aggressive cleanup: revoke shortly after click to minimize plaintext exposure
-    const clickCleanup = () => {
-        setTimeout(() => {
-            if (state.activeObjectUrl === url) {
-                URL.revokeObjectURL(url);
-                state.activeObjectUrl = null;
-            }
+    // Click handler: immediately cancels the 30-second countdown and
+    // schedules the 2-second post-download cleanup.
+    activeClickHandler = () => {
+        clearDownloadTimers();
+
+        postClickTimeout = setTimeout(() => {
+            setDownloadCleanedState();
+            postClickTimeout = null;
         }, 2000);
     };
-    els.downloadLink.addEventListener('click', clickCleanup, { once: true });
+    els.downloadLink.addEventListener('click', activeClickHandler, { once: true });
 
-    // Fallback safety timeout: 30 seconds
-    setTimeout(() => {
-        if (state.activeObjectUrl === url) {
-            URL.revokeObjectURL(url);
-            state.activeObjectUrl = null;
-        }
-        els.downloadWarning.classList.add('hidden');
-    }, 30000);
+    // Start the 30-second hard-expiration countdown
+    startDownloadCountdown();
 
     // Memory safety: clear plaintext buffer before dereferencing
     zeroBuffer(new Uint8Array(buffer));
@@ -113,6 +221,7 @@ export function finishStreaming(filename) {
     els.progressContainer.classList.add('hidden');
     els.downloadContainer.classList.add('hidden');
     els.downloadWarning.classList.add('hidden');
+    revokeActiveObjectUrl();
     secureClearPasswordInputs();
     updateStrength();
 }

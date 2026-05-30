@@ -39,6 +39,7 @@ export const els = {
     processBtnText: document.getElementById('processBtnText'),
     downloadContainer: document.getElementById('downloadContainer'),
     downloadLink: document.getElementById('downloadLink'),
+    downloadLinkText: document.getElementById('downloadLinkText'),
     downloadWarning: document.getElementById('downloadWarning'),
     toast: document.getElementById('toast'),
     toastMsg: document.getElementById('toastMsg')
