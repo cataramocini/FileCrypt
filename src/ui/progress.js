@@ -1,6 +1,6 @@
 import { els } from '../utils/dom.js';
 import { state } from '../state.js';
-import { zeroBuffer, sanitizeFilename } from '../utils/security.js';
+import { zeroBuffer, sanitizeFilename, secureClearPasswordInputs } from '../utils/security.js';
 import { showToast } from './toast.js';
 import { clearFiles } from './fileManager.js';
 import { updateProcessButton } from './processButton.js';
@@ -35,8 +35,7 @@ export function finishProcessing(buffer, filename, mimeType) {
     updateProcessButton();
     els.processBtnText.textContent = state.mode === 'encrypt' ? 'Encrypt Files' : 'Decrypt File';
     updateProgress(100, state.mode === 'encrypt' ? 'Encryption Successful!' : 'Decryption Successful!');
-    els.passwordInput.value = '';
-    els.confirmPasswordInput.value = '';
+    secureClearPasswordInputs();
     updateStrength();
 
     const blob = new Blob([buffer], {type: mimeType || 'application/octet-stream'});
@@ -63,14 +62,27 @@ export function finishProcessing(buffer, filename, mimeType) {
     document.getElementById('downloadFilenameExt').textContent = extName;
 
     els.downloadContainer.classList.remove('hidden');
+    els.downloadWarning.classList.remove('hidden');
 
-    // Cleanup object URL after a delay (allow time for click)
+    // Aggressive cleanup: revoke shortly after click to minimize plaintext exposure
+    const clickCleanup = () => {
+        setTimeout(() => {
+            if (state.activeObjectUrl === url) {
+                URL.revokeObjectURL(url);
+                state.activeObjectUrl = null;
+            }
+        }, 2000);
+    };
+    els.downloadLink.addEventListener('click', clickCleanup, { once: true });
+
+    // Fallback safety timeout: 30 seconds
     setTimeout(() => {
         if (state.activeObjectUrl === url) {
             URL.revokeObjectURL(url);
             state.activeObjectUrl = null;
         }
-    }, 120000); // 2 minutes
+        els.downloadWarning.classList.add('hidden');
+    }, 30000);
 
     // Memory safety: clear plaintext buffer before dereferencing
     zeroBuffer(new Uint8Array(buffer));
@@ -86,8 +98,8 @@ export function failProcessing(message) {
     updateProcessButton();
     els.processBtnText.textContent = state.mode === 'encrypt' ? 'Encrypt Files' : 'Decrypt File';
     els.progressContainer.classList.add('hidden');
-    els.passwordInput.value = '';
-    els.confirmPasswordInput.value = '';
+    els.downloadWarning.classList.add('hidden');
+    secureClearPasswordInputs();
     updateStrength();
     showToast(message, 'error');
 }
@@ -100,18 +112,18 @@ export function finishStreaming(filename) {
     updateProgress(100, state.mode === 'encrypt' ? 'Encryption Successful!' : 'Decryption Successful!');
     els.progressContainer.classList.add('hidden');
     els.downloadContainer.classList.add('hidden');
-    els.passwordInput.value = '';
-    els.confirmPasswordInput.value = '';
+    els.downloadWarning.classList.add('hidden');
+    secureClearPasswordInputs();
     updateStrength();
 }
 
 export function resetUI() {
     if (state.isProcessing) return;
     clearFiles();
-    els.passwordInput.value = '';
-    els.confirmPasswordInput.value = '';
+    secureClearPasswordInputs();
     els.progressContainer.classList.add('hidden');
     els.downloadContainer.classList.add('hidden');
+    els.downloadWarning.classList.add('hidden');
     revokeActiveObjectUrl();
     updateStrength();
     updateProcessButton();

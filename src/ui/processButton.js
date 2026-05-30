@@ -10,5 +10,9 @@ export function updateProcessButton() {
     els.processBtn.disabled = !hasFile || !hasPwd || !minLengthOk || !hasConfirm || !match || state.isProcessing;
 }
 
-els.passwordInput.addEventListener('input', updateProcessButton);
-els.confirmPasswordInput.addEventListener('input', updateProcessButton);
+export function bindProcessButtonListeners() {
+    els.passwordInput.addEventListener('input', updateProcessButton);
+    els.confirmPasswordInput.addEventListener('input', updateProcessButton);
+}
+
+bindProcessButtonListeners();

@@ -37,3 +37,4 @@ test-results/
 # Test artifacts
 test/
 testfile.txt
+/SECURITY_AUDIT_REPORT.md

@@ -1,9 +1,30 @@
+import { els } from './dom.js';
+import { bindProcessButtonListeners } from '../ui/processButton.js';
+import { bindStrengthMeterListeners } from '../ui/strengthMeter.js';
+import { bindPasswordPopoverListeners } from '../ui/passwordGen.js';
+
 export function zeroBuffer(buf) {
     if (buf && buf.fill) {
         buf.fill(0);
     } else if (buf && ArrayBuffer.isView(buf)) {
         new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength).fill(0);
     }
+}
+
+export function secureClearPasswordInputs() {
+    function replaceInput(key) {
+        const old = els[key];
+        old.value = '';
+        const clone = old.cloneNode(true);
+        clone.value = '';
+        old.parentNode.replaceChild(clone, old);
+        els[key] = clone;
+    }
+    replaceInput('passwordInput');
+    replaceInput('confirmPasswordInput');
+    bindProcessButtonListeners();
+    bindStrengthMeterListeners();
+    bindPasswordPopoverListeners();
 }
 
 export function sanitizeFilename(name, fallback) {

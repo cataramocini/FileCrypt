@@ -1,7 +1,7 @@
 import { els } from '../utils/dom.js';
 import { state } from '../state.js';
 import { STREAM_THRESHOLD, MAX_TOTAL_SIZE } from '../config.js';
-import { zeroBuffer } from '../utils/security.js';
+import { zeroBuffer, secureClearPasswordInputs } from '../utils/security.js';
 
 import { updateProgress, revokeActiveObjectUrl, failProcessing } from '../ui/progress.js';
 import { showToast } from '../ui/toast.js';
@@ -29,8 +29,7 @@ export async function startProcess() {
     const passwordBytes = new TextEncoder().encode(passwordStr);
     
     // Dereference the string and clear inputs so the string is eligible for GC.
-    els.passwordInput.value = '';
-    els.confirmPasswordInput.value = '';
+    secureClearPasswordInputs();
     // Notify other modules that password changed
     updateStrength();
     updateProcessButton();

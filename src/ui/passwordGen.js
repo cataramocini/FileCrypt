@@ -58,19 +58,21 @@ function hidePopover() {
     els.passwordSuggestionPopover.classList.add('hidden');
 }
 
-els.passwordInput.addEventListener('focus', showPopoverIfEmpty);
+export function bindPasswordPopoverListeners() {
+    els.passwordInput.addEventListener('focus', showPopoverIfEmpty);
+    els.passwordInput.addEventListener('blur', () => {
+        popoverBlurTimeout = setTimeout(hidePopover, 150);
+    });
+    els.passwordInput.addEventListener('input', () => {
+        if (els.passwordInput.value) {
+            hidePopover();
+        } else {
+            showPopoverIfEmpty();
+        }
+    });
+}
 
-els.passwordInput.addEventListener('blur', () => {
-    popoverBlurTimeout = setTimeout(hidePopover, 150);
-});
-
-els.passwordInput.addEventListener('input', () => {
-    if (els.passwordInput.value) {
-        hidePopover();
-    } else {
-        showPopoverIfEmpty();
-    }
-});
+bindPasswordPopoverListeners();
 
 els.passwordSuggestionPopover.addEventListener('click', () => {
     clearTimeout(popoverBlurTimeout);

@@ -6,14 +6,23 @@ export function workerCall(msg, transfer) {
     return new Promise((resolve, reject) => {
         function handler(e) {
             const payload = e.data;
-            worker.removeEventListener('message', handler);
+            cleanup();
             if (payload.type === 'streamError' || payload.type === 'error') {
                 reject(new Error(payload.message));
             } else {
                 resolve(payload);
             }
         }
+        function errorHandler(err) {
+            cleanup();
+            reject(new Error('Worker error: ' + (err.message || 'unknown worker failure')));
+        }
+        function cleanup() {
+            worker.removeEventListener('message', handler);
+            worker.removeEventListener('error', errorHandler);
+        }
         worker.addEventListener('message', handler);
+        worker.addEventListener('error', errorHandler);
         worker.postMessage(msg, transfer || []);
     });
 }

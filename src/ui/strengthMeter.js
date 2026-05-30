@@ -69,4 +69,8 @@ export function updateStrength() {
     updateMinLengthValidation();
 }
 
-els.passwordInput.addEventListener('input', updateStrength);
+export function bindStrengthMeterListeners() {
+    els.passwordInput.addEventListener('input', updateStrength);
+}
+
+bindStrengthMeterListeners();
