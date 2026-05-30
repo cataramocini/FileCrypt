@@ -2,10 +2,10 @@ import { els } from '../utils/dom.js';
 import { state } from '../state.js';
 import { STREAM_THRESHOLD, MAX_TOTAL_SIZE } from '../config.js';
 import { zeroBuffer } from '../utils/security.js';
-import { formatBytes } from '../utils/dom.js';
+
 import { updateProgress, revokeActiveObjectUrl, failProcessing } from '../ui/progress.js';
 import { showToast } from '../ui/toast.js';
-import { streamEncrypt, streamDecrypt } from './streamer.js';
+import { streamEncrypt, streamEncryptMulti, streamDecrypt } from './streamer.js';
 import { worker } from './workerBridge.js';
 import { updateProcessButton } from '../ui/processButton.js';
 import { updateStrength } from '../ui/strengthMeter.js';
@@ -50,9 +50,10 @@ export async function startProcess() {
         if (useStreaming) {
             if (state.mode === 'encrypt') {
                 if (state.currentFiles.length > 1) {
-                    throw new Error(`Multi-file uploads over ${formatBytes(STREAM_THRESHOLD)} are not supported. Please select a single file or reduce the total size.`);
+                    await streamEncryptMulti(state.currentFiles, passwordBytes);
+                } else {
+                    await streamEncrypt(state.currentFiles[0], passwordBytes);
                 }
-                await streamEncrypt(state.currentFiles[0], passwordBytes);
             } else {
                 await streamDecrypt(state.currentFiles[0], passwordBytes);
             }

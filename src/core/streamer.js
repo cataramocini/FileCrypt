@@ -5,6 +5,7 @@ import { zeroBuffer, sanitizeFilename } from '../utils/security.js';
 import { updateProgress, finishStreaming, failProcessing, setFinalizingAnimation } from '../ui/progress.js';
 import { clearFiles } from '../ui/fileManager.js';
 import { showToast } from '../ui/toast.js';
+import { computeZipLayout, generateZipChunks } from '../utils/zip.js';
 
 export async function streamEncrypt(file, passwordBytes) {
     state.isStreaming = true;
@@ -65,6 +66,81 @@ export async function streamEncrypt(file, passwordBytes) {
 
         finishStreaming(sanitizeFilename(file.name, 'encrypted') + '.enc');
         showToast('File encrypted and saved successfully!', 'success');
+    } catch (err) {
+        if (writable) {
+            try { await writable.abort(); } catch (e) {}
+        }
+        try { await workerCall({ action: 'resetSession' }); } catch (e) {}
+        const msg = err.name === 'AbortError'
+            ? 'Save cancelled by user.'
+            : 'Encryption failed. A partial file may remain on disk.';
+        failProcessing(msg);
+    } finally {
+        state.isStreaming = false;
+        zeroBuffer(passwordBytes);
+        clearFiles();
+    }
+}
+
+export async function streamEncryptMulti(files, passwordBytes) {
+    state.isStreaming = true;
+    let writable = null;
+
+    try {
+        const layout = computeZipLayout(files);
+
+        const fileHandle = await window.showSaveFilePicker({
+            suggestedName: 'archive.zip.enc',
+            types: [{ description: 'Encrypted file', accept: { 'application/octet-stream': ['.enc'] } }]
+        });
+        writable = await fileHandle.createWritable();
+
+        const initResult = await workerCall({
+            action: 'initEncrypt',
+            password: passwordBytes,
+            filename: 'archive.zip',
+            type: 'application/zip',
+            size: layout.totalSize
+        });
+
+        const header = initResult.data;
+        const chunkSize = initResult.chunkSize;
+        await writable.write(new Uint8Array(header));
+
+        const numChunks = Math.ceil(layout.totalSize / chunkSize);
+        let chunkIndex = 0;
+        let lastPercent = -1;
+
+        for await (const zipChunk of generateZipChunks(files, layout, chunkSize)) {
+            let chunkResult = await workerCall({
+                action: 'encryptChunk',
+                chunkIndex: chunkIndex,
+                data: zipChunk.buffer
+            }, [zipChunk.buffer]);
+
+            let outU8 = new Uint8Array(chunkResult.data);
+            await writable.write(outU8);
+            zeroBuffer(outU8);
+            outU8 = null;
+            chunkResult = null;
+
+            chunkIndex++;
+            const percent = Math.round((chunkIndex / numChunks) * 100);
+            if (percent !== lastPercent) {
+                updateProgress(percent, 'Encrypting...');
+                lastPercent = percent;
+            }
+        }
+
+        updateProgress(100, 'Finalizing and securing file...');
+        setFinalizingAnimation(true);
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        await workerCall({ action: 'resetSession' });
+        await writable.close();
+
+        finishStreaming('archive.zip.enc');
+        showToast('Files encrypted and saved successfully!', 'success');
     } catch (err) {
         if (writable) {
             try { await writable.abort(); } catch (e) {}
